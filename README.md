@@ -1,11 +1,12 @@
-# Projet Spring Boot - TD1 + TD2 + TD3 + TD4 + TD5 + TD6
+# Projet Spring Boot - TD1 + TD2 + TD3 + TD4 + TD5 + TD6 + TD7
 
-Ce depot contient les quatre microservices demandes:
+Ce depot contient les cinq microservices:
 
 - `player-service-hamza` (service joueurs)
 - `question-catalog-service` (catalogue de questions)
 - `game-engine-service` (orchestration)
 - `score-service` (archivage des parties)
+- `discovery-service` (annuaire de services)
 
 ## Environnement utilise
 
@@ -56,9 +57,9 @@ Ce depot contient les quatre microservices demandes:
   - `GameDTO`
 - Configuration `RestClient.Builder` via `ClientConfig`.
 - Connecteurs inter-services:
-  - `PlayerClient` -> `http://localhost:8081/api/players`
-  - `QuestionClient` -> `http://localhost:8082/api/questions`
-  - `ScoreClient` -> `http://localhost:8083/api/scores`
+  - `PlayerClient` -> discovery de `player-service-hamza`
+  - `QuestionClient` -> discovery de `question-catalog-service`
+  - `ScoreClient` -> discovery de `score-service`
 - Scenario d'orchestration implemente:
   - `POST /api/games/start/{playerId}?nb=3`
   - Recupere le joueur, recupere les questions, limite a `nb`, retourne une session de jeu agregee.
@@ -70,6 +71,24 @@ Ce depot contient les quatre microservices demandes:
   - 404 propre si joueur inexistant
   - 400 si `nb <= 0`
   - 500 si erreur d'appel inter-service
+
+## Travail realise - discovery-service (TD7)
+
+- Nouveau projet Spring Boot dans `discovery-service/`.
+- Registre en memoire: `Map<String, List<String>>`.
+- Endpoints:
+  - `POST /api/registry` pour l'enregistrement
+  - `GET /api/discovery/{serviceName}` pour la resolution
+- Retourne `404` si le service n'est pas trouve.
+- Port: `8761`.
+
+## Auto-enregistrement (TD7)
+
+- `player-service-hamza`, `question-catalog-service`, `score-service` s'enregistrent automatiquement au demarrage.
+- Chaque service envoie:
+  - `serviceName = spring.application.name`
+  - `url = http://localhost:{server.port}`
+- Si `discovery-service` est indisponible, le service continue de demarrer (log d'avertissement).
 
 ## Travail realise - score-service (TD5)
 
@@ -96,8 +115,25 @@ Ce depot contient les quatre microservices demandes:
 - `player-service-hamza`: `8081`
 - `question-catalog-service`: `8082`
 - `score-service`: `8083`
+- `discovery-service`: `8761`
 
-### 1) player-service (port 8081)
+Ordre conseille de demarrage:
+1. `discovery-service`
+2. `player-service-hamza`
+3. `score-service`
+4. `question-catalog-service`
+5. `game-engine-service`
+
+### 1) discovery-service (port 8761)
+
+```powershell
+$env:JAVA_HOME='C:\Program Files\Java\jdk-21.0.10'
+cd discovery-service
+.\gradlew.bat test
+.\gradlew.bat bootRun
+```
+
+### 2) player-service (port 8081)
 
 ```powershell
 $env:JAVA_HOME='C:\Program Files\Java\jdk-21.0.10'
@@ -105,7 +141,7 @@ $env:JAVA_HOME='C:\Program Files\Java\jdk-21.0.10'
 .\gradlew.bat bootRun
 ```
 
-### 2) question-catalog-service (port 8082)
+### 3) question-catalog-service (port 8082)
 
 ```powershell
 $env:JAVA_HOME='C:\Program Files\Java\jdk-21.0.10'
@@ -114,7 +150,7 @@ cd question-catalog-service
 .\gradlew.bat bootRun
 ```
 
-### 3) game-engine-service (port 8080)
+### 4) game-engine-service (port 8080)
 
 ```powershell
 $env:JAVA_HOME='C:\Program Files\Java\jdk-21.0.10'
@@ -123,7 +159,7 @@ cd game-engine-service
 .\gradlew.bat bootRun
 ```
 
-### 4) score-service (port 8083)
+### 5) score-service (port 8083)
 
 ```powershell
 $env:JAVA_HOME='C:\Program Files\Java\jdk-21.0.10'
@@ -244,7 +280,20 @@ Dans `03. Game Engine`:
 
 ### Execution
 
-1. Demarrer les 4 services (`8080`, `8081`, `8082`, `8083`).
+1. Demarrer les 5 services (`8761`, `8080`, `8081`, `8082`, `8083`).
 2. Importer la collection et l'environnement dans Postman.
 3. Selectionner l'environnement `Local OIL`.
 4. Lancer toute la collection via `Runner`.
+
+## TD7 - Test multi-instance (question-service)
+
+Test realise:
+
+1. Demarrage de `discovery-service`.
+2. Demarrage de `question-catalog-service` sur `8082`.
+3. Demarrage d'une 2e instance de `question-catalog-service` sur `8092` avec `--server.port=8092`.
+4. Verification discovery:
+   - `GET http://localhost:8761/api/discovery/question-catalog-service`
+   - Retour attendue: `["http://localhost:8082","http://localhost:8092"]`.
+5. Appel repete de `POST /api/games/start/...`.
+6. Observation des logs: les deux instances `8082` et `8092` recoivent des requetes, ce qui valide la selection aleatoire cote `game-engine-service`.

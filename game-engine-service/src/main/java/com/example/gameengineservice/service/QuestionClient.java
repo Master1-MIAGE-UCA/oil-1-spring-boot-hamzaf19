@@ -2,6 +2,7 @@ package com.example.gameengineservice.service;
 
 import com.example.gameengineservice.dto.QuestionDTO;
 import java.util.List;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
@@ -9,14 +10,24 @@ import org.springframework.web.client.RestClient;
 @Service
 public class QuestionClient {
 
-    private final RestClient restClient;
+    private final RestClient.Builder restClientBuilder;
+    private final DiscoveryClient discoveryClient;
+    private final String serviceName;
 
-    public QuestionClient(RestClient.Builder builder) {
-        this.restClient = builder.baseUrl("http://localhost:8082/api/questions").build();
+    public QuestionClient(
+            RestClient.Builder builder,
+            DiscoveryClient discoveryClient,
+            @Value("${services.question.name:question-catalog-service}") String serviceName
+    ) {
+        this.restClientBuilder = builder;
+        this.discoveryClient = discoveryClient;
+        this.serviceName = serviceName;
     }
 
     public List<QuestionDTO> getAllQuestions() {
-        List<QuestionDTO> questions = restClient.get()
+        String baseUrl = discoveryClient.pickServiceUrl(serviceName);
+        List<QuestionDTO> questions = restClientBuilder.build().get()
+                .uri(baseUrl + "/api/questions")
                 .retrieve()
                 .body(new ParameterizedTypeReference<>() {
                 });
