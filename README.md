@@ -1,82 +1,72 @@
-# player-service-hamza
+# Projet Spring Boot - TD1 + TD2
 
-Microservice Spring Boot pour la gestion des joueurs (TD1 - Etape 1).
+Ce depot contient les deux microservices demandes:
+
+- `player-service-hamza` (service joueurs)
+- `question-catalog-service` (catalogue de questions)
 
 ## Environnement utilise
 
 - Java: `21.0.10` (Oracle JDK 21 LTS)
 - Spring Boot: `4.0.3`
 - Gradle Wrapper: `9.3.1`
-- Base de donnees: `H2` (in-memory)
+- Base de donnees: `H2` en memoire
 
-## Fonctionnalites realisees
+## Travail realise - player-service
 
-- Configuration du projet avec Java 21.
-- Dependances ajoutees:
-  - Spring Web
-  - Spring Data JPA
-  - H2 Database
-  - Lombok
-- Entite `Player`:
-  - `id` auto-genere
-  - `pseudo` unique et non nul
-  - `score` initialise par defaut a `0`
-- Repository `PlayerRepository` (`JpaRepository<Player, Long>`).
-- Service `PlayerService` avec:
-  - `findAllPlayers()`
-  - `findPlayerById(Long id)`
-  - `createPlayer(Player player)`
-  - `updatePlayer(Long id, Player player)`
-  - `deletePlayer(Long id)`
-- Controller REST `PlayerController` (`/api/players`):
+- Entite `Player` + `PlayerRepository` + `PlayerService` + `PlayerController`.
+- Endpoints REST:
   - `GET /api/players`
   - `GET /api/players/{id}`
   - `POST /api/players`
-  - (en plus) `PUT /api/players/{id}`
-  - (en plus) `DELETE /api/players/{id}`
-- Chargement des donnees initiales au demarrage via `CommandLineRunner`:
-  - Neo (500)
-  - Trinity (750)
-  - Morpheus (1000)
-- Gestion d'erreur `404` si un joueur n'existe pas.
+  - `PUT /api/players/{id}` (mise a jour complete)
+  - `PATCH /api/players/{id}` (mise a jour partielle)
+  - `DELETE /api/players/{id}`
+- Chargement initial via `CommandLineRunner`:
+  - Neo (500), Trinity (750), Morpheus (1000)
+- Gestion centralisee des erreurs avec `@RestControllerAdvice`:
+  - `200`, `201`, `204`, `400`, `404`, `500`
+  - Messages d'erreur detailles.
 
-## Configuration applicative
+## Travail realise - question-catalog-service
 
-Le fichier `src/main/resources/application.properties` configure:
+- Nouveau projet Spring Boot independant dans `question-catalog-service/`.
+- Entite `Question` (id, texte, reponseCorrecte, propositions, categorie).
+- `QuestionRepository` + `QuestionService` + `QuestionController`.
+- Endpoints REST complets:
+  - `GET /api/questions`
+  - `GET /api/questions/{id}`
+  - `POST /api/questions`
+  - `PUT /api/questions/{id}`
+  - `PATCH /api/questions/{id}`
+  - `DELETE /api/questions/{id}`
+- Donnees initiales chargees au demarrage (4 questions).
+- Gestion centralisee des erreurs avec `@RestControllerAdvice`:
+  - `200`, `201`, `204`, `400`, `404`, `500`
 
-- H2 en memoire: `jdbc:h2:mem:playersdb`
-- Creation/suppression schema auto: `spring.jpa.hibernate.ddl-auto=create-drop`
-- Console H2 activee: `/h2-console`
+## Lancement et tests
 
-## Execution et tests
-
-### Lancer les tests
+### 1) player-service (port 8080)
 
 ```powershell
 $env:JAVA_HOME='C:\Program Files\Java\jdk-21.0.10'
 .\gradlew.bat test
-```
-
-### Lancer l'application
-
-```powershell
-$env:JAVA_HOME='C:\Program Files\Java\jdk-21.0.10'
 .\gradlew.bat bootRun
 ```
 
-### Exemples d'appels API
+### 2) question-catalog-service (port 8081)
 
-```bash
-curl http://localhost:8080/api/players
-curl http://localhost:8080/api/players/1
-curl -X POST http://localhost:8080/api/players \
-  -H "Content-Type: application/json" \
-  -d "{\"pseudo\":\"Alice\",\"score\":100}"
+```powershell
+$env:JAVA_HOME='C:\Program Files\Java\jdk-21.0.10'
+cd question-catalog-service
+.\gradlew.bat test
+.\gradlew.bat bootRun
 ```
 
-## Note JAVA_HOME
+## Exemple rapide (player PATCH)
 
-Dans cet environnement, `java -version` fonctionne mais `JAVA_HOME` etait mal configure systeme (`C:\Program Files\Java`).  
-Pour utiliser Gradle, il faut pointer `JAVA_HOME` vers le JDK complet, par exemple:
-
-`C:\Program Files\Java\jdk-21.0.10`
+```bash
+curl -X PATCH http://localhost:8080/api/players/1 \
+  -H "Content-Type: application/json" \
+  -d "{\"score\":1200}"
+```

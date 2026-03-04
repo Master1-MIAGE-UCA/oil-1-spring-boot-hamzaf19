@@ -1,13 +1,14 @@
 package com.example.playerservicehamza.controller;
 
+import com.example.playerservicehamza.dto.PlayerPatchRequest;
 import com.example.playerservicehamza.entity.Player;
-import com.example.playerservicehamza.service.PlayerNotFoundException;
+import jakarta.validation.Valid;
 import com.example.playerservicehamza.service.PlayerService;
 import java.util.List;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -38,24 +39,23 @@ public class PlayerController {
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public Player createPlayer(@RequestBody Player player) {
+    public Player createPlayer(@Valid @RequestBody Player player) {
         return playerService.createPlayer(player);
     }
 
     @PutMapping("/{id}")
-    public Player updatePlayer(@PathVariable Long id, @RequestBody Player player) {
+    public Player updatePlayer(@PathVariable Long id, @Valid @RequestBody Player player) {
         return playerService.updatePlayer(id, player);
+    }
+
+    @PatchMapping("/{id}")
+    public Player patchPlayer(@PathVariable Long id, @Valid @RequestBody PlayerPatchRequest request) {
+        return playerService.patchPlayer(id, request);
     }
 
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void deletePlayer(@PathVariable Long id) {
         playerService.deletePlayer(id);
-    }
-
-    @ExceptionHandler(PlayerNotFoundException.class)
-    @ResponseStatus(HttpStatus.NOT_FOUND)
-    public String handlePlayerNotFound(PlayerNotFoundException exception) {
-        return exception.getMessage();
     }
 }

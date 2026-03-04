@@ -1,5 +1,6 @@
 package com.example.playerservicehamza.service;
 
+import com.example.playerservicehamza.dto.PlayerPatchRequest;
 import com.example.playerservicehamza.entity.Player;
 import com.example.playerservicehamza.repository.PlayerRepository;
 import java.util.List;
@@ -20,7 +21,7 @@ public class PlayerService {
 
     public Player findPlayerById(Long id) {
         return playerRepository.findById(id)
-                .orElseThrow(() -> new PlayerNotFoundException(id));
+                .orElseThrow(() -> new PlayerNotFoundException(id, "findById"));
     }
 
     public Player createPlayer(Player player) {
@@ -29,14 +30,34 @@ public class PlayerService {
     }
 
     public Player updatePlayer(Long id, Player player) {
-        Player existingPlayer = findPlayerById(id);
+        Player existingPlayer = playerRepository.findById(id)
+                .orElseThrow(() -> new PlayerNotFoundException(id, "update"));
         existingPlayer.setPseudo(player.getPseudo());
         existingPlayer.setScore(player.getScore());
         return playerRepository.save(existingPlayer);
     }
 
+    public Player patchPlayer(Long id, PlayerPatchRequest request) {
+        if (request.hasNoFields()) {
+            throw new BadRequestException("Le corps de la requete PATCH est vide.");
+        }
+
+        Player existingPlayer = playerRepository.findById(id)
+                .orElseThrow(() -> new PlayerNotFoundException(id, "patch"));
+
+        if (request.getPseudo() != null) {
+            existingPlayer.setPseudo(request.getPseudo());
+        }
+        if (request.getScore() != null) {
+            existingPlayer.setScore(request.getScore());
+        }
+
+        return playerRepository.save(existingPlayer);
+    }
+
     public void deletePlayer(Long id) {
-        Player existingPlayer = findPlayerById(id);
+        Player existingPlayer = playerRepository.findById(id)
+                .orElseThrow(() -> new PlayerNotFoundException(id, "delete"));
         playerRepository.delete(existingPlayer);
     }
 }

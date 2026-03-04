@@ -6,7 +6,7 @@ plugins {
 
 group = 'com.example'
 version = '0.0.1-SNAPSHOT'
-description = 'player-service-hamza'
+description = 'question-catalog-service'
 
 java {
     toolchain {
