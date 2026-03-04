@@ -1,4 +1,4 @@
-# Projet Spring Boot - TD1 + TD2 + TD3 + TD4 + TD5
+# Projet Spring Boot - TD1 + TD2 + TD3 + TD4 + TD5 + TD6
 
 Ce depot contient les quatre microservices demandes:
 
@@ -207,3 +207,44 @@ cd ..\game-engine-service
 cd ..\score-service
 .\gradlew.bat test
 ```
+
+## TD6 - Industrialisation des tests d'API
+
+Les fichiers Postman exportes sont versionnes ici:
+
+- `tests/postman/Microservices_OIL.postman_collection.json`
+- `tests/postman/Local_OIL.postman_environment.json`
+
+### Contenu de la collection
+
+- Dossiers:
+  - `01. Player Service`
+  - `02. Question Service`
+  - `03. Game Engine`
+  - `04. Score Service`
+- Variables d'environnement utilisees:
+  - `{{url_player}}`
+  - `{{url_question}}`
+  - `{{url_game}}`
+  - `{{url_score}}`
+- Couverture des cas:
+  - Codes de succes: `200`, `201`, `204`
+  - Codes d'erreurs: `400`, `404`
+  - Assertions de statut, contenu JSON, temps de reponse, messages d'erreur
+
+### Scenario dynamique implemente
+
+Dans `03. Game Engine`:
+
+- `Scenario - Cycle de vie complet d'une partie`
+  1. Creation d'un joueur et stockage de `current_player_id`
+  2. Demarrage de partie avec `{{current_player_id}}`
+  3. Fin de partie avec `{{current_player_id}}`
+  4. Verification que le score du joueur a augmente
+
+### Execution
+
+1. Demarrer les 4 services (`8080`, `8081`, `8082`, `8083`).
+2. Importer la collection et l'environnement dans Postman.
+3. Selectionner l'environnement `Local OIL`.
+4. Lancer toute la collection via `Runner`.
