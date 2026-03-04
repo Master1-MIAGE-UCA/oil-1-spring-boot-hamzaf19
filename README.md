@@ -1,9 +1,10 @@
-# Projet Spring Boot - TD1 + TD2
+# Projet Spring Boot - TD1 + TD2 + TD3
 
-Ce depot contient les deux microservices demandes:
+Ce depot contient les trois microservices demandes:
 
 - `player-service-hamza` (service joueurs)
 - `question-catalog-service` (catalogue de questions)
+- `game-engine-service` (orchestration)
 
 ## Environnement utilise
 
@@ -44,9 +45,35 @@ Ce depot contient les deux microservices demandes:
 - Gestion centralisee des erreurs avec `@RestControllerAdvice`:
   - `200`, `201`, `204`, `400`, `404`, `500`
 
+## Travail realise - game-engine-service
+
+- Nouveau projet Spring Boot dans `game-engine-service/`.
+- Dependances: Spring Web + Lombok (pas de JPA/H2).
+- DTOs de communication:
+  - `PlayerDTO`
+  - `QuestionDTO`
+  - `GameDTO`
+- Configuration `RestClient.Builder` via `ClientConfig`.
+- Connecteurs inter-services:
+  - `PlayerClient` -> `http://localhost:8081/api/players`
+  - `QuestionClient` -> `http://localhost:8082/api/questions`
+- Scenario d'orchestration implemente:
+  - `POST /api/games/start/{playerId}?nb=3`
+  - Recupere le joueur, recupere les questions, limite a `nb`, retourne une session de jeu agregee.
+- Gestion d'erreurs:
+  - 404 propre si joueur inexistant
+  - 400 si `nb <= 0`
+  - 500 si erreur d'appel inter-service
+
 ## Lancement et tests
 
-### 1) player-service (port 8080)
+### Ports utilises
+
+- `game-engine-service`: `8080`
+- `player-service-hamza`: `8081`
+- `question-catalog-service`: `8082`
+
+### 1) player-service (port 8081)
 
 ```powershell
 $env:JAVA_HOME='C:\Program Files\Java\jdk-21.0.10'
@@ -54,7 +81,7 @@ $env:JAVA_HOME='C:\Program Files\Java\jdk-21.0.10'
 .\gradlew.bat bootRun
 ```
 
-### 2) question-catalog-service (port 8081)
+### 2) question-catalog-service (port 8082)
 
 ```powershell
 $env:JAVA_HOME='C:\Program Files\Java\jdk-21.0.10'
@@ -63,10 +90,17 @@ cd question-catalog-service
 .\gradlew.bat bootRun
 ```
 
-## Exemple rapide (player PATCH)
+### 3) game-engine-service (port 8080)
+
+```powershell
+$env:JAVA_HOME='C:\Program Files\Java\jdk-21.0.10'
+cd game-engine-service
+.\gradlew.bat test
+.\gradlew.bat bootRun
+```
+
+## Exemple orchestration TD3
 
 ```bash
-curl -X PATCH http://localhost:8080/api/players/1 \
-  -H "Content-Type: application/json" \
-  -d "{\"score\":1200}"
+curl -X POST "http://localhost:8080/api/games/start/1?nb=2"
 ```
