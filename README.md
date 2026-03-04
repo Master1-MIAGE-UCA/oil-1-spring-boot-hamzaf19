@@ -1,4 +1,4 @@
-# Projet Spring Boot - TD1 + TD2 + TD3
+# Projet Spring Boot - TD1 + TD2 + TD3 + TD4
 
 Ce depot contient les trois microservices demandes:
 
@@ -103,4 +103,55 @@ cd game-engine-service
 
 ```bash
 curl -X POST "http://localhost:8080/api/games/start/1?nb=2"
+```
+
+## TD4 - Tests automatises
+
+### Tests unitaires (game-engine-service)
+
+Fichier: `game-engine-service/src/test/java/com/example/gameengineservice/service/GameServiceTest.java`
+
+6 tests unitaires:
+
+- `shouldStartNewGameSuccessfully`
+- `shouldLimitReturnedQuestionsToRequestedNumber`
+- `shouldThrowBadRequestWhenNumberOfQuestionsIsZero`
+- `shouldThrowGameNotFoundWhenPlayerServiceReturns404`
+- `shouldThrowRemoteServiceExceptionWhenPlayerServiceReturnsServerError`
+- `shouldThrowRemoteServiceExceptionWhenQuestionServiceFails`
+
+### Tests d'integration (player-service)
+
+Fichier: `src/test/java/com/example/playerservicehamza/repository/PlayerRepositoryTest.java`
+
+4 tests d'integration:
+
+- `shouldFindPlayerByPseudo`
+- `shouldSavePlayer`
+- `shouldReturnEmptyWhenPseudoNotFound`
+- `shouldRejectDuplicatePseudo`
+
+### Tests E2E / fonctionnels (player-service)
+
+Fichier: `src/test/java/com/example/playerservicehamza/e2e/PlayerE2ETest.java`
+
+3 tests E2E:
+
+- `shouldCreateAndRetrievePlayer`
+- `shouldReturnNotFoundWhenPlayerDoesNotExist`
+- `shouldPatchPlayerScore`
+
+### Commandes
+
+```powershell
+# player-service
+.\gradlew.bat test
+
+# question-catalog-service
+cd question-catalog-service
+.\gradlew.bat test
+
+# game-engine-service
+cd ..\game-engine-service
+.\gradlew.bat test
 ```

@@ -46,6 +46,9 @@ public class PlayerService {
                 .orElseThrow(() -> new PlayerNotFoundException(id, "patch"));
 
         if (request.getPseudo() != null) {
+            if (request.getPseudo().isBlank()) {
+                throw new BadRequestException("Le pseudo est manquant dans le corps de la requete.");
+            }
             existingPlayer.setPseudo(request.getPseudo());
         }
         if (request.getScore() != null) {

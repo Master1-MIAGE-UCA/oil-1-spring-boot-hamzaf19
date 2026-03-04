@@ -1,11 +1,9 @@
 package com.example.playerservicehamza.dto;
 
 import jakarta.validation.constraints.Min;
-import jakarta.validation.constraints.NotBlank;
 
 public class PlayerPatchRequest {
 
-    @NotBlank(message = "Le pseudo est vide.")
     private String pseudo;
 
     @Min(value = 0, message = "Le format du score est invalide.")

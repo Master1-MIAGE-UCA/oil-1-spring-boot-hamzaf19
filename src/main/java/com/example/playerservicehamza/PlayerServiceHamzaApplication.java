@@ -2,6 +2,7 @@ package com.example.playerservicehamza;
 
 import com.example.playerservicehamza.entity.Player;
 import com.example.playerservicehamza.repository.PlayerRepository;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -15,6 +16,7 @@ public class PlayerServiceHamzaApplication {
     }
 
     @Bean
+    @ConditionalOnProperty(name = "app.seed.players.enabled", havingValue = "true", matchIfMissing = true)
     CommandLineRunner loadData(PlayerRepository repository) {
         return args -> {
             if (repository.count() == 0) {
