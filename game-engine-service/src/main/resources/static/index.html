@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Game Dashboard WebSocket</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 24px; }
+        .row { margin-bottom: 12px; }
+        input, button { padding: 8px; margin-right: 8px; }
+        #events { border: 1px solid #ddd; padding: 12px; min-height: 220px; white-space: pre-wrap; background: #fafafa; }
+        .tag { font-weight: bold; color: #2f4f4f; }
+    </style>
+</head>
+<body>
+<h2>Game Engine WebSocket Dashboard</h2>
+
+<div class="row">
+    <input id="gameIdInput" placeholder="Game ID (ex: partie-1)" value="partie-1">
+    <input id="playerIdInput" placeholder="Player ID (ex: 10)" value="10">
+    <button onclick="connectToGame()">Connecter</button>
+    <button onclick="disconnect()">Deconnecter</button>
+</div>
+
+<div class="row">
+    <input id="chatInput" placeholder="Message de chat">
+    <button onclick="sendChat()">Envoyer Message</button>
+</div>
+
+<h3>Evenements recus</h3>
+<div id="events"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/stompjs@2/lib/stomp.min.js"></script>
+<script>
+    let stompClient = null;
+
+    function appendEvent(text) {
+        const events = document.getElementById("events");
+        events.textContent += text + "\n";
+        events.scrollTop = events.scrollHeight;
+    }
+
+    function showEvent(event) {
+        appendEvent("[" + (event.type || "EVENT") + "] game=" + event.gameId + " player=" + (event.playerId ?? "-") + " | " + event.message);
+    }
+
+    function connectToGame() {
+        const gameId = document.getElementById("gameIdInput").value;
+        const playerId = document.getElementById("playerIdInput").value;
+
+        if (!gameId || !playerId) {
+            appendEvent("Renseigner gameId et playerId.");
+            return;
+        }
+
+        const socket = new SockJS('/ws');
+        stompClient = Stomp.over(socket);
+        stompClient.connect({}, function () {
+            appendEvent("Connecte au WS.");
+
+            stompClient.subscribe('/topic/game/' + gameId, function (message) {
+                showEvent(JSON.parse(message.body));
+            });
+
+            stompClient.subscribe('/topic/player/' + playerId, function (message) {
+                showEvent(JSON.parse(message.body));
+            });
+
+            appendEvent("Abonne a /topic/game/" + gameId + " et /topic/player/" + playerId);
+        });
+    }
+
+    function sendChat() {
+        if (!stompClient) {
+            appendEvent("Connecte-toi d'abord.");
+            return;
+        }
+        const gameId = document.getElementById("gameIdInput").value;
+        const content = document.getElementById("chatInput").value;
+        if (!content) {
+            return;
+        }
+        const payload = { sender: "Moi", content: content };
+        stompClient.send("/app/chat/" + gameId, {}, JSON.stringify(payload));
+        document.getElementById("chatInput").value = "";
+    }
+
+    function disconnect() {
+        if (stompClient) {
+            stompClient.disconnect();
+            stompClient = null;
+            appendEvent("Deconnecte.");
+        }
+    }
+</script>
+</body>
+</html>

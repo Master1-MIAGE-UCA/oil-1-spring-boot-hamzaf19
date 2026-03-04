@@ -1,4 +1,4 @@
-# Projet Spring Boot - TD1 + TD2 + TD3 + TD4 + TD5 + TD6 + TD7
+# Projet Spring Boot - TD1 + TD2 + TD3 + TD4 + TD5 + TD6 + TD7 + TD8
 
 Ce depot contient les cinq microservices:
 
@@ -297,3 +297,44 @@ Test realise:
    - Retour attendue: `["http://localhost:8082","http://localhost:8092"]`.
 5. Appel repete de `POST /api/games/start/...`.
 6. Observation des logs: les deux instances `8082` et `8092` recoivent des requetes, ce qui valide la selection aleatoire cote `game-engine-service`.
+
+## TD8 - WebSockets avances (Rooms + Prive + Chat)
+
+### URL Dashboard
+
+- Dashboard WebSocket: `http://localhost:8080/index.html`
+
+### Fonctionnalites implementees
+
+- Rooms dynamiques:
+  - Publication backend sur `/topic/game/{gameId}`
+  - Souscription frontend dynamique sur le `gameId` saisi
+- Messages prives:
+  - Canal dedie par joueur `/topic/player/{playerId}`
+  - Endpoint de test: `POST /api/games/bonus/{playerId}?gameId=partie-1&message=...`
+- Chat in-game client -> serveur:
+  - Envoi client vers `/app/chat/{gameId}`
+  - Rediffusion vers `/topic/game/{gameId}`
+- Configuration STOMP/SockJS:
+  - Endpoint: `/ws`
+  - Prefix application: `/app`
+
+### API adaptee
+
+- Demarrage de partie avec room:
+  - `POST /api/games/start/{playerId}?nb=3&gameId=partie-1`
+- Fin de partie avec room:
+  - `POST /api/games/end` avec body:
+  - `{ \"playerId\": 1, \"score\": 50, \"gameId\": \"partie-1\" }`
+
+### Validation manuelle realisee
+
+1. Client A connecte sur `gameId=partie-1`, `playerId=10`.
+2. Client B connecte sur `gameId=partie-1`, `playerId=20`.
+3. Client C connecte sur `gameId=partie-2`, `playerId=30`.
+4. `POST /api/games/start/...&gameId=partie-1`:
+   - A et B recoivent l'evenement, C ne recoit rien.
+5. `POST /api/games/bonus/10?gameId=partie-1`:
+   - seul A recoit le message `SECRET`.
+6. Chat envoye depuis A:
+   - visible instantanement chez A et B (meme room), pas chez C.

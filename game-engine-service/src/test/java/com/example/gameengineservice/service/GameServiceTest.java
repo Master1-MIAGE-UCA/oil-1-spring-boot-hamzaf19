@@ -1,7 +1,6 @@
 package com.example.gameengineservice.service;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.never;
@@ -23,6 +22,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.HttpServerErrorException;
 
@@ -38,6 +38,9 @@ class GameServiceTest {
     @Mock
     private ScoreClient scoreClient;
 
+    @Mock
+    private SimpMessagingTemplate messagingTemplate;
+
     @InjectMocks
     private GameService gameService;
 
@@ -50,13 +53,17 @@ class GameServiceTest {
         when(playerClient.getPlayerById(playerId)).thenReturn(mockPlayer);
         when(questionClient.getAllQuestions()).thenReturn(mockQuestions);
 
-        GameDTO result = gameService.startNewGame(playerId, 1);
+        GameDTO result = gameService.startNewGame(playerId, 1, "partie-1");
 
         assertEquals("Neo", result.player().pseudo());
         assertEquals(1, result.questions().size());
-        assertFalse(result.gameId().isBlank());
+        assertEquals("partie-1", result.gameId());
         verify(playerClient).getPlayerById(playerId);
         verify(questionClient).getAllQuestions();
+        verify(messagingTemplate).convertAndSend(
+                org.mockito.ArgumentMatchers.eq("/topic/game/partie-1"),
+                org.mockito.ArgumentMatchers.any(com.example.gameengineservice.dto.GameEvent.class)
+        );
     }
 
     @Test
@@ -72,7 +79,7 @@ class GameServiceTest {
         when(playerClient.getPlayerById(playerId)).thenReturn(mockPlayer);
         when(questionClient.getAllQuestions()).thenReturn(mockQuestions);
 
-        GameDTO result = gameService.startNewGame(playerId, 2);
+        GameDTO result = gameService.startNewGame(playerId, 2, "partie-2");
 
         assertEquals(2, result.questions().size());
         assertEquals("Q1", result.questions().get(0).texte());
@@ -82,7 +89,7 @@ class GameServiceTest {
     @Test
     void shouldThrowBadRequestWhenNumberOfQuestionsIsZero() {
         BadRequestException exception =
-                assertThrows(BadRequestException.class, () -> gameService.startNewGame(1L, 0));
+                assertThrows(BadRequestException.class, () -> gameService.startNewGame(1L, 0, "partie-1"));
 
         assertTrue(exception.getMessage().contains("superieur a 0"));
         verify(playerClient, never()).getPlayerById(1L);
@@ -104,7 +111,7 @@ class GameServiceTest {
 
         GameNotFoundException exception = assertThrows(
                 GameNotFoundException.class,
-                () -> gameService.startNewGame(playerId, 2)
+                () -> gameService.startNewGame(playerId, 2, "partie-1")
         );
 
         assertTrue(exception.getMessage().contains("introuvable"));
@@ -126,7 +133,7 @@ class GameServiceTest {
 
         RemoteServiceException exception = assertThrows(
                 RemoteServiceException.class,
-                () -> gameService.startNewGame(playerId, 2)
+                () -> gameService.startNewGame(playerId, 2, "partie-1")
         );
 
         assertTrue(exception.getMessage().contains("player-service"));
@@ -150,7 +157,7 @@ class GameServiceTest {
 
         RemoteServiceException exception = assertThrows(
                 RemoteServiceException.class,
-                () -> gameService.startNewGame(playerId, 3)
+                () -> gameService.startNewGame(playerId, 3, "partie-1")
         );
 
         assertTrue(exception.getMessage().contains("question-catalog-service"));
@@ -167,7 +174,7 @@ class GameServiceTest {
         when(playerClient.updatePlayerScore(playerId, gainedScore))
                 .thenReturn(new PlayerDTO(playerId, "Neo", 150));
 
-        EndGameDTO result = gameService.endGame(playerId, gainedScore);
+        EndGameDTO result = gameService.endGame(playerId, gainedScore, "partie-1");
 
         assertEquals(playerId, result.playerId());
         assertEquals(gainedScore, result.gainedScore());
@@ -180,9 +187,25 @@ class GameServiceTest {
     @Test
     void shouldThrowBadRequestWhenEndGameScoreIsNegative() {
         BadRequestException exception =
-                assertThrows(BadRequestException.class, () -> gameService.endGame(1L, -1));
+                assertThrows(BadRequestException.class, () -> gameService.endGame(1L, -1, "partie-1"));
 
         assertTrue(exception.getMessage().contains("superieur ou egal a 0"));
         verify(scoreClient, never()).sendScore(1L, -1);
+    }
+
+    @Test
+    void shouldThrowBadRequestWhenGameIdMissingOnStart() {
+        BadRequestException exception =
+                assertThrows(BadRequestException.class, () -> gameService.startNewGame(1L, 2, ""));
+
+        assertTrue(exception.getMessage().contains("gameId"));
+    }
+
+    @Test
+    void shouldThrowBadRequestWhenGameIdMissingOnEnd() {
+        BadRequestException exception =
+                assertThrows(BadRequestException.class, () -> gameService.endGame(1L, 10, ""));
+
+        assertTrue(exception.getMessage().contains("gameId"));
     }
 }

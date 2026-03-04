@@ -23,12 +23,26 @@ public class GameController {
     }
 
     @PostMapping("/start/{playerId}")
-    public GameDTO startGame(@PathVariable Long playerId, @RequestParam(defaultValue = "3") int nb) {
-        return gameService.startNewGame(playerId, nb);
+    public GameDTO startGame(
+            @PathVariable Long playerId,
+            @RequestParam(defaultValue = "3") int nb,
+            @RequestParam(defaultValue = "partie-default") String gameId
+    ) {
+        return gameService.startNewGame(playerId, nb, gameId);
     }
 
     @PostMapping("/end")
     public EndGameDTO endGame(@Valid @RequestBody EndGameRequest request) {
-        return gameService.endGame(request.playerId(), request.score());
+        String gameId = request.gameId() == null ? "partie-default" : request.gameId();
+        return gameService.endGame(request.playerId(), request.score(), gameId);
+    }
+
+    @PostMapping("/bonus/{playerId}")
+    public void sendBonus(
+            @PathVariable Long playerId,
+            @RequestParam String gameId,
+            @RequestParam(defaultValue = "Bonus secret !") String message
+    ) {
+        gameService.sendPrivateMessage(gameId, playerId, message);
     }
 }
