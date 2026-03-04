@@ -5,8 +5,11 @@ import com.example.gameengineservice.service.GameNotFoundException;
 import com.example.gameengineservice.service.RemoteServiceException;
 import jakarta.servlet.http.HttpServletRequest;
 import java.time.Instant;
+import java.util.stream.Collectors;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.FieldError;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
@@ -21,6 +24,17 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(BadRequestException.class)
     public ResponseEntity<ApiError> handleBadRequest(BadRequestException exception, HttpServletRequest request) {
         return buildError(HttpStatus.BAD_REQUEST, exception.getMessage(), request.getRequestURI());
+    }
+
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    public ResponseEntity<ApiError> handleValidation(
+            MethodArgumentNotValidException exception,
+            HttpServletRequest request
+    ) {
+        String message = exception.getBindingResult().getFieldErrors().stream()
+                .map(FieldError::getDefaultMessage)
+                .collect(Collectors.joining(" | "));
+        return buildError(HttpStatus.BAD_REQUEST, message, request.getRequestURI());
     }
 
     @ExceptionHandler(RemoteServiceException.class)

@@ -8,10 +8,13 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.example.gameengineservice.dto.EndGameDTO;
 import com.example.gameengineservice.dto.GameDTO;
 import com.example.gameengineservice.dto.PlayerDTO;
 import com.example.gameengineservice.dto.QuestionDTO;
+import com.example.gameengineservice.dto.ScoreArchiveDTO;
 import java.nio.charset.StandardCharsets;
+import java.time.LocalDateTime;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -31,6 +34,9 @@ class GameServiceTest {
 
     @Mock
     private QuestionClient questionClient;
+
+    @Mock
+    private ScoreClient scoreClient;
 
     @InjectMocks
     private GameService gameService;
@@ -148,5 +154,35 @@ class GameServiceTest {
         );
 
         assertTrue(exception.getMessage().contains("question-catalog-service"));
+    }
+
+    @Test
+    void shouldEndGameSuccessfully() {
+        Long playerId = 1L;
+        int gainedScore = 50;
+        LocalDateTime now = LocalDateTime.now();
+
+        when(scoreClient.sendScore(playerId, gainedScore))
+                .thenReturn(new ScoreArchiveDTO(10L, now, playerId, gainedScore));
+        when(playerClient.updatePlayerScore(playerId, gainedScore))
+                .thenReturn(new PlayerDTO(playerId, "Neo", 150));
+
+        EndGameDTO result = gameService.endGame(playerId, gainedScore);
+
+        assertEquals(playerId, result.playerId());
+        assertEquals(gainedScore, result.gainedScore());
+        assertEquals(150, result.totalScore());
+        assertEquals(10L, result.archivedGameId());
+        verify(scoreClient).sendScore(playerId, gainedScore);
+        verify(playerClient).updatePlayerScore(playerId, gainedScore);
+    }
+
+    @Test
+    void shouldThrowBadRequestWhenEndGameScoreIsNegative() {
+        BadRequestException exception =
+                assertThrows(BadRequestException.class, () -> gameService.endGame(1L, -1));
+
+        assertTrue(exception.getMessage().contains("superieur ou egal a 0"));
+        verify(scoreClient, never()).sendScore(1L, -1);
     }
 }

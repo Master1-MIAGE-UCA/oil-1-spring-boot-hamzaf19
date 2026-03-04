@@ -1,10 +1,11 @@
-# Projet Spring Boot - TD1 + TD2 + TD3 + TD4
+# Projet Spring Boot - TD1 + TD2 + TD3 + TD4 + TD5
 
-Ce depot contient les trois microservices demandes:
+Ce depot contient les quatre microservices demandes:
 
 - `player-service-hamza` (service joueurs)
 - `question-catalog-service` (catalogue de questions)
 - `game-engine-service` (orchestration)
+- `score-service` (archivage des parties)
 
 ## Environnement utilise
 
@@ -57,13 +58,35 @@ Ce depot contient les trois microservices demandes:
 - Connecteurs inter-services:
   - `PlayerClient` -> `http://localhost:8081/api/players`
   - `QuestionClient` -> `http://localhost:8082/api/questions`
+  - `ScoreClient` -> `http://localhost:8083/api/scores`
 - Scenario d'orchestration implemente:
   - `POST /api/games/start/{playerId}?nb=3`
   - Recupere le joueur, recupere les questions, limite a `nb`, retourne une session de jeu agregee.
+- Scenario de fin de partie (TD5):
+  - `POST /api/games/end`
+  - Archive la partie dans `score-service`
+  - Met a jour le score global du joueur dans `player-service` (PATCH)
 - Gestion d'erreurs:
   - 404 propre si joueur inexistant
   - 400 si `nb <= 0`
   - 500 si erreur d'appel inter-service
+
+## Travail realise - score-service (TD5)
+
+- Nouveau projet Spring Boot dans `score-service/`.
+- Entite `GameHistory`:
+  - `id`
+  - `playedAt`
+  - `playerId`
+  - `score`
+- Couches implementees:
+  - `GameHistoryRepository`
+  - `GameHistoryService`
+  - `ScoreController`
+- Endpoints:
+  - `POST /api/scores` (archive une partie terminee)
+  - `GET /api/scores` (liste des archives pour verification)
+- Port: `8083`
 
 ## Lancement et tests
 
@@ -72,6 +95,7 @@ Ce depot contient les trois microservices demandes:
 - `game-engine-service`: `8080`
 - `player-service-hamza`: `8081`
 - `question-catalog-service`: `8082`
+- `score-service`: `8083`
 
 ### 1) player-service (port 8081)
 
@@ -99,11 +123,33 @@ cd game-engine-service
 .\gradlew.bat bootRun
 ```
 
+### 4) score-service (port 8083)
+
+```powershell
+$env:JAVA_HOME='C:\Program Files\Java\jdk-21.0.10'
+cd ..\score-service
+.\gradlew.bat test
+.\gradlew.bat bootRun
+```
+
 ## Exemple orchestration TD3
 
 ```bash
 curl -X POST "http://localhost:8080/api/games/start/1?nb=2"
 ```
+
+## Exemple orchestration TD5 (fin de partie)
+
+```bash
+curl -X POST "http://localhost:8080/api/games/end" \
+  -H "Content-Type: application/json" \
+  -d "{\"playerId\":1,\"score\":50}"
+```
+
+Verification rapide:
+
+- `GET http://localhost:8081/api/players/1` -> score augmente
+- `GET http://localhost:8083/api/scores` -> une nouvelle ligne d'historique existe
 
 ## TD4 - Tests automatises
 
@@ -111,7 +157,7 @@ curl -X POST "http://localhost:8080/api/games/start/1?nb=2"
 
 Fichier: `game-engine-service/src/test/java/com/example/gameengineservice/service/GameServiceTest.java`
 
-6 tests unitaires:
+8 tests unitaires:
 
 - `shouldStartNewGameSuccessfully`
 - `shouldLimitReturnedQuestionsToRequestedNumber`
@@ -119,6 +165,8 @@ Fichier: `game-engine-service/src/test/java/com/example/gameengineservice/servic
 - `shouldThrowGameNotFoundWhenPlayerServiceReturns404`
 - `shouldThrowRemoteServiceExceptionWhenPlayerServiceReturnsServerError`
 - `shouldThrowRemoteServiceExceptionWhenQuestionServiceFails`
+- `shouldEndGameSuccessfully`
+- `shouldThrowBadRequestWhenEndGameScoreIsNegative`
 
 ### Tests d'integration (player-service)
 
@@ -153,5 +201,9 @@ cd question-catalog-service
 
 # game-engine-service
 cd ..\game-engine-service
+.\gradlew.bat test
+
+# score-service
+cd ..\score-service
 .\gradlew.bat test
 ```
